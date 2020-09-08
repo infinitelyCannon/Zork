@@ -1,7 +1,19 @@
 ﻿using System;
+using System.Data.SqlTypes;
 
 namespace Zork
 {
+    enum Commands
+    {
+        QUIT,
+        LOOK,
+        NORTH,
+        SOUTH,
+        EAST,
+        WEST,
+        UNKNOWN
+    }
+
     class Program
     {
         static void Main(string[] args)
@@ -23,6 +35,11 @@ namespace Zork
             {
                 Console.WriteLine("Unrecognized command.");
             }
+        }
+
+        private static Commands ToCommand(string commandString)
+        {
+            return Enum.TryParse(commandString, true, out Commands result) ? result : Commands.UNKNOWN;
         }
     }
 }
