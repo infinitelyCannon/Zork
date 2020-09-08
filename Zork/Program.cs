@@ -15,9 +15,13 @@ namespace Zork
 
     class Program
     {
+        private static readonly string[] Rooms = {"Forest", "West of House", "Behind House", "Clearing", "Canyon View"};
+        private static int RoomIndex = 1;
+        
         static void Main(string[] args)
         {
             Console.WriteLine("Welcome to Zork!");
+            Console.WriteLine(Rooms[RoomIndex]);
 
             Commands command = Commands.UNKNOWN;
             while(command != Commands.QUIT)
@@ -39,7 +43,7 @@ namespace Zork
                     case Commands.SOUTH:
                     case Commands.EAST:
                     case Commands.WEST:
-                        outputString = "You moved " + command;
+                        outputString = Move(command) ? $"You moved {command}" : "The way is shut!";
                         break;
                     case Commands.UNKNOWN:
                     default:
@@ -47,6 +51,36 @@ namespace Zork
                         break;
                 }
                 Console.WriteLine(outputString);
+                if (command != Commands.QUIT)
+                    Console.WriteLine(Rooms[RoomIndex]);
+            }
+        }
+
+        private static bool Move(Commands command)
+        {
+            switch (command)
+            {
+                case Commands.EAST:
+                    if (RoomIndex + 1 < Rooms.Length)
+                    {
+                        ++RoomIndex;
+                        return true;
+                    }
+                    else
+                        return false;
+                case Commands.WEST:
+                    if (RoomIndex - 1 >= 0)
+                    {
+                        --RoomIndex;
+                        return true;
+                    }
+                    else
+                        return false;
+                case Commands.NORTH:
+                case Commands.SOUTH:
+                    return false;
+                default:
+                    throw new Exception("An illegal command was passed to move");
             }
         }
 
