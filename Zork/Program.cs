@@ -15,13 +15,17 @@ namespace Zork
 
     class Program
     {
-        private static readonly string[] Rooms = {"Forest", "West of House", "Behind House", "Clearing", "Canyon View"};
-        private static int RoomIndex = 1;
+        private static readonly string[,] Rooms = {
+            {"Rocky Trail", "South of House", "Canyon View"},
+            {"Forest", "West of House", "Behind House"},
+            {"Dense Woods", "North of House", "Clearing"}
+        };
+        private static (int Row, int Column) Location = (1,1);
         
         static void Main(string[] args)
         {
             Console.WriteLine("Welcome to Zork!");
-            Console.WriteLine(Rooms[RoomIndex]);
+            Console.WriteLine(Rooms[Location.Row, Location.Column]);
 
             Commands command = Commands.UNKNOWN;
             while(command != Commands.QUIT)
@@ -52,7 +56,7 @@ namespace Zork
                 }
                 Console.WriteLine(outputString);
                 if (command != Commands.QUIT)
-                    Console.WriteLine(Rooms[RoomIndex]);
+                    Console.WriteLine(Rooms[Location.Row, Location.Column]);
             }
         }
 
@@ -61,23 +65,32 @@ namespace Zork
             switch (command)
             {
                 case Commands.EAST:
-                    if (RoomIndex + 1 < Rooms.Length)
+                    if (Location.Column + 1 < Rooms.GetLength(0))
                     {
-                        ++RoomIndex;
+                        ++Location.Column;
                         return true;
                     }
-                    else
-                        return false;
+                    return false;
                 case Commands.WEST:
-                    if (RoomIndex - 1 >= 0)
+                    if (Location.Column - 1 >= 0)
                     {
-                        --RoomIndex;
+                        --Location.Column;
                         return true;
                     }
-                    else
-                        return false;
+                    return false;
                 case Commands.NORTH:
+                    if (Location.Row + 1 < Rooms.GetLength(1))
+                    {
+                        ++Location.Row;
+                        return true;
+                    }
+                    return false;
                 case Commands.SOUTH:
+                    if(Location.Row - 1 >= 0)
+                    {
+                        --Location.Row;
+                        return true;
+                    }
                     return false;
                 default:
                     throw new Exception("An illegal command was passed to move");
