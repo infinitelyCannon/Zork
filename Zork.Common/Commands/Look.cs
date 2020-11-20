@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Zork
+namespace Zork.Common.Commands
 {
     [CommandClass]
     public static class LookCommand

@@ -1,5 +1,6 @@
 ﻿using System;
-using Zork;
+using Zork.Common;
+using Zork.Common.Commands;
 
 string[] responses = new string[]
 {

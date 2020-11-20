@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Zork
+namespace Zork.Common
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class CommandClassAttribute : Attribute

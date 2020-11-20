@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Scripting;
 using System.Text;
 using System.ComponentModel;
 
-namespace Zork
+namespace Zork.Common
 {
     public class Game
     {
@@ -41,7 +41,7 @@ namespace Zork
 
             while(Instance == null || Instance.mIsRestarting)
             {
-                Instance = Load(gameFilename);
+                Instance = Load(gameFilename, (Instance == null) ? true : Instance.mIsNewGame);
                 Instance.LoadCommands();
                 Instance.LoadScripts();
                 Instance.DisplayWelcomeMessage();
@@ -75,6 +75,26 @@ namespace Zork
             }
         }
 
+        public void LoadGame()
+        {
+            mIsNewGame = false;
+            mIsRunning = false;
+            mIsRestarting = true;
+            Console.Clear();
+        }
+
+        public void SaveGame()
+        {
+            JsonSerializer serializer = new JsonSerializer { Formatting = Formatting.Indented };
+
+            using (StreamWriter streamWriter = new StreamWriter("./ZorkSave.json"))
+            using (JsonWriter jsonWriter = new JsonTextWriter(streamWriter))
+            {
+                serializer.Serialize(jsonWriter, Player.GetSaveData());
+            }
+            Console.WriteLine("Game Saved.");
+        }
+
         public void Restart()
         {
             mIsRunning = false;
@@ -84,10 +104,10 @@ namespace Zork
 
         public void Quit() => mIsRunning = false;
 
-        public static Game Load(string filename)
+        public static Game Load(string filename, bool newGame)
         {
             Game game = JsonConvert.DeserializeObject<Game>(File.ReadAllText(filename));
-            game.Player = game.World.SpawnPlayer();
+            game.Player = game.World.SpawnPlayer(newGame);
 
             return game;
         }
@@ -145,6 +165,24 @@ namespace Zork
             }
         }
 
+        public bool ParseNumber(string prompt, out int value)
+        {
+            Console.Write(prompt);
+            int result;
+
+            while (true)
+            {
+                string response = Console.ReadLine().Trim();
+                if (int.TryParse(response, out result))
+                {
+                    value = result;
+                    return true;
+                }
+                else
+                    Console.Write("Please enter a whole number.> ");
+            }
+        }
+
         private void DisplayWelcomeMessage() => Console.WriteLine(WelcomeMessage);
 
         public static readonly Random Random = new Random();
@@ -156,5 +194,6 @@ namespace Zork
 
         private bool mIsRunning;
         private bool mIsRestarting;
+        private bool mIsNewGame = true;
     }
 }

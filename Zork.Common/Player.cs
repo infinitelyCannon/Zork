@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Zork
+namespace Zork.Common
 {
     public enum Directions
     {
@@ -11,6 +11,7 @@ namespace Zork
         West
     }
 
+    /*
     enum Commands
     {
         QUIT,
@@ -21,6 +22,7 @@ namespace Zork
         WEST,
         UNKNOWN
     }
+    */
 
     public class Player
     {
@@ -30,6 +32,12 @@ namespace Zork
 
         [JsonIgnore]
         public Room Location { get; private set; }
+
+        [JsonIgnore]
+        public int Score { get; set; }
+
+        [JsonIgnore]
+        public List<string> Inventory { get; set; }
 
         [JsonIgnore]
         public string LocationName
@@ -44,10 +52,13 @@ namespace Zork
             }
         }
 
-        public Player(World world, string startingLocation)
+        public Player(World world, PlayerState data)
         {
             World = world;
-            LocationName = startingLocation;
+            LocationName = data.Location;
+            Score = data.Score;
+            Moves = data.Moves;
+            Inventory = data.Inventory;
         }
 
         public bool Move(Directions direction)
@@ -57,6 +68,17 @@ namespace Zork
                 Location = destination;
 
             return isValidMove;
+        }
+
+        public PlayerState GetSaveData()
+        {
+            PlayerState state = new PlayerState();
+            state.Inventory = Inventory;
+            state.Location = LocationName;
+            state.Moves = Moves;
+            state.Score = Score;
+
+            return state;
         }
     }
 }
