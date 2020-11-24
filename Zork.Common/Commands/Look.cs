@@ -6,6 +6,6 @@ namespace Zork.Common.Commands
     public static class LookCommand
     {
         [Command("LOOK", new string[] { "LOOK", "L" })]
-        public static void Look(Game game, CommandContext context) => Console.WriteLine(game.Player.Location.Description);
+        public static void Look(Game game, CommandContext context) => game.Output.WriteLine($"{game.Player.Location}\n{game.Player.Location.Description}");
     }
 }

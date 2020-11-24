@@ -8,11 +8,7 @@ namespace Zork.Common.Commands
         [Command("REWARD", new string[] { "REWARD", "R" })]
         public static void Reward(Game game, CommandContext context)
         {
-            int amount;
-            if(game.ParseNumber("How many points? ", out amount))
-            {
-                game.Player.Score += amount;
-            }
+            game.ParseNumber("How many points?", (value) => game.Player.Score += value);
         }
     }
 }

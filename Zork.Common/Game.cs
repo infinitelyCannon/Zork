@@ -3,8 +3,6 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Linq;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
 using System.Text;
 using System.ComponentModel;
 
@@ -12,6 +10,18 @@ namespace Zork.Common
 {
     public class Game
     {
+        public delegate string LoadGameEvent();
+
+        // Data Events (For Unity)
+        public event EventHandler<string> OnLocationChanged;
+        public event EventHandler<int> OnScoreChanged;
+        public event EventHandler<int> OnMovesChanged;
+        public event EventHandler<string> OnSaveGame;
+        public event LoadGameEvent LoadGameString;
+
+        public delegate void YesNoPrompt();
+        public delegate void NumberPrompt(int value);
+
         [JsonIgnore]
         public static Game Instance { get; private set; }
 
@@ -21,7 +31,7 @@ namespace Zork.Common
         public Player Player { get; private set; }
 
         [JsonIgnore]
-        public bool IsRunning { get; }
+        public bool IsRunning { get; private set; }
 
         [JsonIgnore]
         public CommandManager CommandManager { get; }
@@ -34,80 +44,161 @@ namespace Zork.Common
 
         public Game() => CommandManager = new CommandManager();
 
-        public static void Start(string gameFilename)
+        public static void StartFromFile(string gameFilename, IInputService input, IOutputService output)
         {
             if (!File.Exists(gameFilename))
                 throw new FileNotFoundException("Expected file.", gameFilename);
 
-            while(Instance == null || Instance.mIsRestarting)
-            {
-                Instance = Load(gameFilename, (Instance == null) ? true : Instance.mIsNewGame);
-                Instance.LoadCommands();
-                Instance.LoadScripts();
-                Instance.DisplayWelcomeMessage();
-                Instance.Run();
-            }
+            Start(File.ReadAllText(gameFilename), input, output);
         }
 
-        public void Run()
+        public static void Start(string gameJsonString, IInputService input, IOutputService output)
         {
-            mIsRunning = true;
-            Room previousRoom = null;
+            Instance = Load(gameJsonString, (Instance == null) ? string.Empty : Instance.NewGameString);
+            Instance.GameString = gameJsonString;
+            Instance.Input = input;
+            Instance.Output = output;
+            Instance.LoadCommands();
+            //Instance.LoadScripts();
+            Instance.DisplayWelcomeMessage();
+            Instance.IsRunning = true;
+            Instance.Input.InputReceived += Instance.InputInputReceivedHandler;
+        }
 
-            while (mIsRunning)
+        private void InputInputReceivedHandler(object sender, string inputString)
+        {
+            Room previousRoom = Player.Location;
+            int previousScore = Player.Score;
+
+            if (IsWaitingForYesNo)
             {
-                Console.WriteLine(Player.Location);
-                if(previousRoom != Player.Location)
+                string response = inputString.Trim().ToUpper();
+                if (response == "YES" || response == "Y")
                 {
-                    CommandManager.PerformCommand(this, "LOOK");
-                    previousRoom = Player.Location;
+                    YesPrompt?.Invoke();
+                    IsWaitingForYesNo = false;
+                    return;
                 }
-
-                Console.Write("\n> ");
-                if(CommandManager.PerformCommand(this, Console.ReadLine().Trim()))
+                else if (response == "NO" || response == "N")
                 {
-                    Player.Moves++;
+                    NoPrompt?.Invoke();
+                    IsWaitingForYesNo = false;
+                    return;
                 }
                 else
                 {
-                    Console.WriteLine("That's not a verb I recognize.");
+                    Output.Write("Please answer yes or no.> ");
+                    return;
                 }
+            }
+
+            if (IsWaitingForNumber)
+            {
+                int result;
+                string response = inputString.Trim();
+                if (int.TryParse(response, out result))
+                {
+                    mNumberPrompt(result);
+                    IsWaitingForNumber = false;
+                    OnScoreChanged?.Invoke(this, Player.Score);
+                    return;
+                }
+                else
+                {
+                    Output.WriteLine("Please enter a whole number.> ");
+                    return;
+                }
+                    
+            }
+
+            if (CommandManager.PerformCommand(this, inputString.Trim()))
+            {
+                Player.Moves++;
+                OnMovesChanged?.Invoke(this, Player.Moves);
+                
+                if (previousRoom != Player.Location)
+                {
+                    CommandManager.PerformCommand(this, "LOOK");
+                    OnLocationChanged?.Invoke(this, Player.Location.Name);
+                }
+
+                if (previousScore != Player.Score)
+                    OnScoreChanged?.Invoke(this, Player.Score);
+            }
+            else
+            {
+                Output.WriteLine("That's not a verb I recognize.");
             }
         }
 
         public void LoadGame()
         {
-            mIsNewGame = false;
-            mIsRunning = false;
-            mIsRestarting = true;
-            Console.Clear();
+            if(LoadGameString != null)
+            {
+                PlayerState state = null;
+                NewGameString = LoadGameString?.Invoke();
+
+                if (!string.IsNullOrEmpty(NewGameString))
+                {
+                    state = JsonConvert.DeserializeObject<PlayerState>(NewGameString);
+                    Player.LocationName = state.Location;
+                    Player.Score = state.Score;
+                    Player.Moves = state.Moves;
+                    OnLocationChanged?.Invoke(this, Player.LocationName);
+                    OnScoreChanged?.Invoke(this, Player.Score);
+                    OnMovesChanged?.Invoke(this, Player.Moves);
+                }
+
+                else
+                {
+                    Output.WriteLine("Restore failed. No save file exists yet.");
+                    return;
+                }
+            }
+            else
+            {
+                Output.WriteLine("Restore failed. This game is not setup to load games.");
+            }
+
         }
 
         public void SaveGame()
         {
             JsonSerializer serializer = new JsonSerializer { Formatting = Formatting.Indented };
 
-            using (StreamWriter streamWriter = new StreamWriter("./ZorkSave.json"))
+            using (StringWriter streamWriter = new StringWriter())
             using (JsonWriter jsonWriter = new JsonTextWriter(streamWriter))
             {
                 serializer.Serialize(jsonWriter, Player.GetSaveData());
+                if (OnSaveGame == null)
+                    Output.WriteLine("Sorry, could not save. This game is not allowed.");
+                else
+                {
+                    OnSaveGame(this, streamWriter.ToString());
+                    Output.WriteLine("Game Saved.");
+                }
             }
-            Console.WriteLine("Game Saved.");
         }
 
         public void Restart()
         {
-            mIsRunning = false;
-            mIsRestarting = true;
-            Console.Clear();
+            //IsRunning = false;
+            //mIsRestarting = true;
+            Output.Clear();
+            Player.LocationName = World.GetStartingLocation();
+            Player.Score = 0;
+            Player.Moves = 0;
+            OnLocationChanged?.Invoke(this, Player.LocationName);
+            OnScoreChanged?.Invoke(this, 0);
+            OnMovesChanged?.Invoke(this, 0);
         }
 
-        public void Quit() => mIsRunning = false;
+        public void Quit() => IsRunning = false;
 
-        public static Game Load(string filename, bool newGame)
+        public static Game Load(string gameJsonString, string newGameString)
         {
-            Game game = JsonConvert.DeserializeObject<Game>(File.ReadAllText(filename));
-            game.Player = game.World.SpawnPlayer(newGame);
+            Game game = JsonConvert.DeserializeObject<Game>(gameJsonString);
+            game.Player = game.World.SpawnPlayer(newGameString);
 
             return game;
         }
@@ -125,6 +216,7 @@ namespace Zork.Common
             CommandManager.AddCommands(commandMethods);
         }
 
+        /*
         private void LoadScripts()
         {
             foreach(string file in Directory.EnumerateFiles(ScriptDirectory, ScriptFileExtension))
@@ -144,14 +236,21 @@ namespace Zork.Common
                 }
                 catch(Exception e)
                 {
-                    Console.WriteLine($"Error compiling script: {file} Error: {e.Message}");
+                    Output.WriteLine($"Error compiling script: {file} Error: {e.Message}");
                 }
             }
         }
+        */
 
-        public bool ConfirmAction(string prompt)
+        public void ConfirmAction(string prompt, YesNoPrompt yes, YesNoPrompt no)
         {
-            Console.Write(prompt);
+            Output.WriteLine(prompt);
+
+            IsWaitingForYesNo = true;
+            YesPrompt = yes;
+            NoPrompt = no;
+            /*
+            Output.Write(prompt);
 
             while (true)
             {
@@ -161,13 +260,18 @@ namespace Zork.Common
                 else if (response == "NO" || response == "N")
                     return false;
                 else
-                    Console.Write("Please answer yes or no.> ");
+                    Output.Write("Please answer yes or no.> ");
             }
+            */
         }
 
-        public bool ParseNumber(string prompt, out int value)
+        public void ParseNumber(string prompt, NumberPrompt numberPrompt)
         {
-            Console.Write(prompt);
+            Output.WriteLine(prompt);
+
+            IsWaitingForNumber = true;
+            mNumberPrompt = numberPrompt;
+            /*
             int result;
 
             while (true)
@@ -179,21 +283,34 @@ namespace Zork.Common
                     return true;
                 }
                 else
-                    Console.Write("Please enter a whole number.> ");
+                    Output.Write("Please enter a whole number.> ");
             }
+            */
         }
 
-        private void DisplayWelcomeMessage() => Console.WriteLine(WelcomeMessage);
+        private void DisplayWelcomeMessage() => Output.WriteLine(WelcomeMessage);
 
         public static readonly Random Random = new Random();
-        private static readonly string ScriptDirectory = "Scripts";
-        private static readonly string ScriptFileExtension = "*.csx";
+        //private static readonly string ScriptDirectory = "Scripts";
+        //private static readonly string ScriptFileExtension = "*.csx";
 
         [JsonProperty]
         private string WelcomeMessage = null;
 
-        private bool mIsRunning;
+        [JsonIgnore]
+        public IOutputService Output { get; private set; }
+
+        [JsonIgnore]
+        public IInputService Input { get; private set; }
+
         private bool mIsRestarting;
-        private bool mIsNewGame = true;
+        private string NewGameString = null;
+        private string GameString;
+
+        private bool IsWaitingForYesNo = false;
+        private bool IsWaitingForNumber = false;
+        private YesNoPrompt YesPrompt;
+        private YesNoPrompt NoPrompt;
+        private NumberPrompt mNumberPrompt;
     }
 }

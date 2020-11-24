@@ -8,8 +8,7 @@ namespace Zork.Common.Commands
         [Command("RESTART", "RESTART")]
         public static void Restart(Game game, CommandContext context)
         {
-            if (game.ConfirmAction("Are you sure you want to restart?"))
-                game.Restart();
+            game.ConfirmAction("Are you sure you want to restart?", () => game.Restart(), null);
         }
     }
 }

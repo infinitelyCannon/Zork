@@ -9,10 +9,7 @@ namespace Zork.Common.Commands
         [Command("LOAD", "LOAD")]
         public static void Load(Game game, CommandContext context)
         {
-            if (File.Exists("./ZorkSave.json"))
-                game.LoadGame();
-            else
-                Console.WriteLine("Restore failed. No save file exists yet.");
+            game.LoadGame();
         }
     }
 }

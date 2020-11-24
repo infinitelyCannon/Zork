@@ -8,8 +8,7 @@ namespace Zork.Common.Commands
         [Command("QUIT", new string[] { "QUIT", "Q" })]
         public static void Quit(Game game, CommandContext context)
         {
-            if (game.ConfirmAction("Are you sure you want to quit?"))
-                game.Quit();
+            game.ConfirmAction("Are you sure you want to quit?", () => game.Quit(), null);
         }
     }
 }

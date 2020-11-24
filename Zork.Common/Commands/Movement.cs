@@ -21,7 +21,7 @@ namespace Zork.Common.Commands
         {
             bool moved = game.Player.Move(direction);
             if (moved == false)
-                Console.WriteLine("The way is shut!");
+                game.Output.WriteLine("The way is shut!");
         }
     }
 }

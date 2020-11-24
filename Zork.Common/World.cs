@@ -15,33 +15,24 @@ namespace Zork.Common
         [JsonIgnore]
         public ReadOnlyDictionary<string, Room> RoomsByName => new ReadOnlyDictionary<string, Room>(mRoomsByName);
 
-        public Player SpawnPlayer(bool newGame)
+        public Player SpawnPlayer(string newGameString)
         {
             PlayerState playerState;
 
-            if (newGame)
+            if (string.IsNullOrEmpty(newGameString))
             {
                 playerState = new PlayerState();
                 playerState.Location = StartingLocation;
             }
             else
-            {
-                if(File.Exists("./ZorkSave.json"))
-                    playerState = JsonConvert.DeserializeObject<PlayerState>(File.ReadAllText("./ZorkSave.json"));
-                else
-                {
-                    // Should not ever reach this state, but just in case, we'll start a new game.
-                    playerState = new PlayerState();
-                    playerState.Location = StartingLocation;
-                }
-            }
+                playerState = JsonConvert.DeserializeObject<PlayerState>(newGameString);
 
             return new Player(this, playerState);
         }
 
-        public void SetStartingLocation(string location)
+        public string GetStartingLocation()
         {
-            StartingLocation = location;
+            return StartingLocation;
         }
 
         [OnDeserialized]

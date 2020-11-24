@@ -8,7 +8,7 @@ namespace Zork.Common.Commands
         [Command("TIME", "TIME")]
         public static void Time(Game game, CommandContext context)
         {
-            Console.WriteLine("You have been playing ZORK for longer than you think.");
+            game.Output.WriteLine("You have been playing ZORK for longer than you think.");
         }
     }
 }

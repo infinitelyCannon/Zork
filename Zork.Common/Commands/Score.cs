@@ -8,7 +8,7 @@ namespace Zork.Common.Commands
         [Command("SCORE", "SCORE")]
         public static void Score(Game game, CommandContext context)
         {
-            Console.WriteLine("Your score would be {0}, in {1} moves.", game.Player.Score, game.Player.Moves);
+            game.Output.WriteLine($"Your score would be {game.Player.Score}, in {game.Player.Moves} moves.");
         }
     }
 }

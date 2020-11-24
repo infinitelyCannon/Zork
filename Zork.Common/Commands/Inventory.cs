@@ -10,14 +10,14 @@ namespace Zork.Common.Commands
         {
             if (game.Player.Inventory.Count > 0)
             {
-                Console.WriteLine("You are carrying:");
+                game.Output.WriteLine("You are carrying:");
                 foreach(string item in game.Player.Inventory)
                 {
-                    Console.WriteLine(item);
+                    game.Output.WriteLine(item);
                 }
             }
             else
-                Console.WriteLine("You are empty handed");
+                game.Output.WriteLine("You are empty handed");
         }
     }
 }

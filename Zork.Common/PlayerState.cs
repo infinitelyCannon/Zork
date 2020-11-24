@@ -15,6 +15,8 @@ namespace Zork.Common
         public PlayerState()
         {
             Inventory = new List<string>();
+            Moves = 0;
+            Score = 0;
         }
     }
 }
