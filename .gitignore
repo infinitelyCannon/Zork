@@ -1,3 +1,8 @@
 .vs
 **/bin/
 **/obj/
+Zork.Unity/Library
+Zork.Unity/Logs
+Zork.Unity/Temp
+Zork.Unity/*.csproj
+Zork.Unity/*.sln
